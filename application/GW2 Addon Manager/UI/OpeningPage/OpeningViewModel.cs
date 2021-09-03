@@ -1,5 +1,4 @@
-﻿using GalaSoft.MvvmLight.Command;
-using IWshRuntimeLibrary;
+﻿using IWshRuntimeLibrary;
 using System;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
@@ -12,6 +11,7 @@ using GW2_Addon_Manager.Dependencies.FileSystem;
 using GW2_Addon_Manager.Dependencies.WebClient;
 using File = System.IO.File;
 using Localization;
+using CommunityToolkit.Mvvm.Input;
 
 namespace GW2_Addon_Manager
 {
@@ -119,35 +119,35 @@ namespace GW2_Addon_Manager
         /// </summary>
         public ICommand DisableSelected
         {
-            get => new RelayCommand<object>(param => _pluginManagement.DisableSelected(), true);
+            get => new RelayCommand(() => _pluginManagement.DisableSelected());
         }
         /// <summary>
         /// Handles the enable selected addons button.
         /// </summary>
         public ICommand EnableSelected
         {
-            get => new RelayCommand<object>(param => _pluginManagement.EnableSelected(), true);
+            get => new RelayCommand(() => _pluginManagement.EnableSelected());
         }
         /// <summary>
         /// Handles the delete selected addons button.
         /// </summary>
         public ICommand DeleteSelected
         {
-            get => new RelayCommand<object>(param => _pluginManagement.DeleteSelected(), true);
+            get => new RelayCommand(() => _pluginManagement.DeleteSelected());
         }
         /// <summary>
         /// Handles the Reset to Clean Install button.
         /// </summary>
         public ICommand CleanInstall
         {
-            get => new RelayCommand<object>(param => _pluginManagement.DeleteAll(), true);
+            get => new RelayCommand(() => _pluginManagement.DeleteAll());
         }
         /// <summary>
         /// Handles the Change Language buttons.
         /// </summary>
         public ICommand ChangeLanguage
         {
-            get => new RelayCommand<string>(param => _configuration.SetCulture(param), true);
+            get => new RelayCommand<string>(param => _configuration.SetCulture(param));
         }
 
         /******************************************/
@@ -157,14 +157,14 @@ namespace GW2_Addon_Manager
         /// </summary>
         public ICommand DownloadSelfUpdate
         {
-            get => new RelayCommand<object>(param => SelfUpdate.Update(), true);
+            get => new RelayCommand(() => SelfUpdate.Update());
         }
         /// <summary>
         /// Handles the create shortcut button under the options menu. <see cref="cs_logic"/>
         /// </summary>
         public ICommand CreateShortcut
         {
-            get => new RelayCommand<object>(param => cs_logic(), true);
+            get => new RelayCommand(() => cs_logic());
         }
 
         /***** Misc *****/

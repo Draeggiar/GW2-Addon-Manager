@@ -37,12 +37,10 @@ namespace GW2_Addon_Manager
             DataContext = _viewModel;
 
             _configurationManager = new ConfigurationManager();
-
-            var configuration = new Configuration(_configurationManager, new UpdateHelper(new WebClientWrapper()), new FileSystemManager());
-            configuration.DetermineSystemType();
-
             _pluginManagement = new PluginManagement(_configurationManager);
             _pluginManagement.DisplayAddonStatus();
+
+            var configuration = new Configuration(_configurationManager, new UpdateHelper(new WebClientWrapper()), new FileSystemManager());        
 
             InitializeComponent();
             SetUpdateButtonVisibility(configuration);

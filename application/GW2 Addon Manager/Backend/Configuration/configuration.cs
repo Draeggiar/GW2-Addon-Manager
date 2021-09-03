@@ -30,8 +30,13 @@ namespace GW2_Addon_Manager
         public bool CheckIfNewVersionIsAvailable(out string latestVersion)
         {
             var releaseInfo = _updateHelper.GitReleaseInfo(ApplicationRepoUrl);
-            latestVersion = releaseInfo.tag_name;
+            if (releaseInfo == null)
+            {
+                latestVersion = _configurationManager.ApplicationVersion;
+                return false;
+            }
 
+            latestVersion = releaseInfo.tag_name;
             return latestVersion != _configurationManager.ApplicationVersion;
         }
 

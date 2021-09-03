@@ -48,8 +48,10 @@ namespace GW2_Addon_Manager
 
             //check application version
             dynamic latestInfo = new UpdateHelper(new WebClientWrapper()).GitReleaseInfo(applicationRepoUrl);
-            string downloadUrl = latestInfo.assets[0].browser_download_url;
+            if (latestInfo == null)
+                return;
 
+            string downloadUrl = latestInfo.assets[0].browser_download_url;
             viewModel.UpdateAvailable = $"{StaticText.Downloading} {latestInfo.tag_name}";
 
             Directory.CreateDirectory(update_folder);

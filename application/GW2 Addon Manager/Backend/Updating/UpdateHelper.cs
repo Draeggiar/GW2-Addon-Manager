@@ -4,7 +4,9 @@ using System.Linq;
 using System.Net;
 using System.Windows;
 using GW2_Addon_Manager.App.Configuration;
+using GW2_Addon_Manager.Backend.Updating;
 using GW2_Addon_Manager.Dependencies.WebClient;
+using JetBrains.Annotations;
 
 namespace GW2_Addon_Manager
 {
@@ -17,6 +19,7 @@ namespace GW2_Addon_Manager
             _webClient = webClient;
         }
 
+        [CanBeNull]
         public virtual dynamic GitReleaseInfo(string gitUrl)
         {
             _webClient.Headers.Add("User-Agent", "request");
@@ -24,14 +27,13 @@ namespace GW2_Addon_Manager
             {
                 var releaseInfoJson = _webClient.DownloadString(gitUrl);
                 return JsonConvert.DeserializeObject(releaseInfoJson);
-
             }
-            catch (WebException)
+            catch (WebException ex)
             {
-                //TODO: Add this catch to API calls made at application startup as well
-                MessageBox.Show("Github Servers returned an error; please try again in a few minutes.", "Github API Error", MessageBoxButton.OK, MessageBoxImage.Error);
-                SelfUpdate.startUpdater();
-                Application.Current.Shutdown();
+                if (((HttpWebResponse) ex.Response).StatusCode != HttpStatusCode.Forbidden) throw;
+
+                MessageBox.Show("Github Servers returned an error; please try again in a few minutes.",
+                    "Github API Error", MessageBoxButton.OK, MessageBoxImage.Error);
                 return null;
             }
         }
@@ -44,13 +46,13 @@ namespace GW2_Addon_Manager
             await settingUp.HandleLoaderUpdate();
 
             List<AddonInfoFromYaml> addons = (List<AddonInfoFromYaml>)Application.Current.Properties["Selected"];
-            
+
             var configurationManager = new ConfigurationManager();
             foreach (AddonInfoFromYaml addon in addons.Where(add => add != null))
             {
                 GenericUpdater updater = new GenericUpdater(addon, configurationManager);
-            
-                if(!(addon.additional_flags != null && addon.additional_flags.Contains("self-updating") 
+
+                if (!(addon.additional_flags != null && addon.additional_flags.Contains("self-updating")
                      && configurationManager.UserConfig.AddonsList.FirstOrDefault(a => a.Name == addon.addon_name)?.Installed == true))
                     await updater.Update();
             }

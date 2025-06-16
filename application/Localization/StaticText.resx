@@ -219,4 +219,7 @@
   <data name="Spanish" xml:space="preserve">
     <value>Spanish</value>
   </data>
+  <data name="ReinstallLoader" xml:space="preserve">
+    <value>Reinstall Loader</value>
+  </data>
 </root>

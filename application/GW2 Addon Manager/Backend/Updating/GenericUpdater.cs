@@ -1,4 +1,6 @@
 ﻿using System;
+using Microsoft.VisualBasic.FileIO;
+using System.ComponentModel;
 using System.IO;
 using System.IO.Compression;
 using System.Linq;
@@ -7,8 +9,6 @@ using System.Threading.Tasks;
 using GW2_Addon_Manager.App.Configuration;
 using GW2_Addon_Manager.App.Configuration.Model;
 using GW2_Addon_Manager.Dependencies.FileSystem;
-using GW2_Addon_Manager.Dependencies.WebClient;
-using Microsoft.VisualBasic.FileIO;
 
 namespace GW2_Addon_Manager.Backend.Updating
 {
@@ -58,29 +58,26 @@ namespace GW2_Addon_Manager.Backend.Updating
         /// </summary>
         private async Task GitCheckUpdate()
         {
-            var client = new WebClient();
-            client.Headers.Add("User-Agent", "request");
-
-            var releaseInfo = new UpdateHelper(new WebClientWrapper()).GitReleaseInfo(_addonInfo.host_url);
+            using var webClient = WebClientFactory.Create();
+            var releaseInfo = new UpdateHelper(webClient).GitReleaseInfo(_addonInfo.host_url);
             if (releaseInfo == null)
                 return;
             _latestVersion = releaseInfo.tag_name;
 
-            var currentAddonVersion =
-                _configurationManager.UserConfig.AddonsList.FirstOrDefault(a => a.Name == _addonName);
+            var currentAddonVersion = _configurationManager.UserConfig.AddonsList.FirstOrDefault(a => a.Name == _addonName);
             if (currentAddonVersion != null && currentAddonVersion.Version == _latestVersion)
                 return;
 
-            string downloadLink = releaseInfo.assets[0].browser_download_url;
+            var downloadLink = releaseInfo.assets[0].browser_download_url;
             _viewModel.ProgBarLabel = "Downloading " + _addonInfo.addon_name + " " + _latestVersion;
-            await Download(downloadLink, client);
+            await Download(downloadLink, webClient);
         }
 
         private async Task StandaloneCheckUpdate()
         {
-            var client = new WebClient();
             var downloadUrl = _addonInfo.host_url;
-
+            
+            using var client = WebClientFactory.Create();
             if (_addonInfo.version_url != null)
             {
                 _latestVersion = client.DownloadString(_addonInfo.version_url);

@@ -5,6 +5,7 @@ using System.IO;
 using System.Net;
 using System.Threading.Tasks;
 using System.Windows;
+using GW2_Addon_Manager.Backend;
 using GW2_Addon_Manager.Dependencies.WebClient;
 
 namespace GW2_Addon_Manager
@@ -55,11 +56,12 @@ namespace GW2_Addon_Manager
             viewModel.UpdateAvailable = $"{StaticText.Downloading} {latestInfo.tag_name}";
 
             Directory.CreateDirectory(update_folder);
-            WebClient client = new WebClient();
-            client.Headers.Add("User-Agent", "request");
-            client.DownloadProgressChanged += new DownloadProgressChangedEventHandler(selfUpdate_DownloadProgress);
-            client.DownloadFileCompleted += new AsyncCompletedEventHandler(selfUpdate_DownloadCompleted);
-            await client.DownloadFileTaskAsync(new System.Uri(downloadUrl), Path.Combine(update_folder, update_name));
+            using (var client = WebClientFactory.Create())
+            {
+                client.DownloadProgressChanged += new DownloadProgressChangedEventHandler(selfUpdate_DownloadProgress);
+                client.DownloadFileCompleted += new AsyncCompletedEventHandler(selfUpdate_DownloadCompleted);
+                await client.DownloadFileTaskAsync(new System.Uri(downloadUrl), Path.Combine(update_folder, update_name));
+            }
         }
 
         /* updating download status on UI */

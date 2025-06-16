@@ -80,7 +80,7 @@ move "$(TargetDir)*.dll" "$(TargetDir)resources\plugins"</PostBuildEvent>
     <PackageReference Include="JetBrains.Annotations" Version="2021.1.0" />
     <PackageReference Include="MvvmLight" Version="5.4.1.1" />
     <PackageReference Include="MvvmLightLibs" Version="5.4.1.1" />
-    <PackageReference Include="Newtonsoft.Json" Version="12.0.2" />
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
     <PackageReference Include="WindowsAPICodePack-Core" Version="1.1.1" />
     <PackageReference Include="WindowsAPICodePack-Shell" Version="1.1.1" />
     <PackageReference Include="YamlDotNet" Version="8.0.0" />

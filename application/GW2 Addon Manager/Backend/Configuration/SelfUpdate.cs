@@ -48,7 +48,7 @@ namespace GW2_Addon_Manager
                 Directory.Delete(update_folder, true);
 
             //check application version
-            dynamic latestInfo = new UpdateHelper(new WebClientWrapper()).GitReleaseInfo(applicationRepoUrl);
+            dynamic latestInfo = new UpdateHelper(WebClientFactory.Create()).GitReleaseInfo(applicationRepoUrl);
             if (latestInfo == null)
                 return;
 

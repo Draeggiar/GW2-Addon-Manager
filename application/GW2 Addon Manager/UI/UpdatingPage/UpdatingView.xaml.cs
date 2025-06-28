@@ -24,11 +24,13 @@ namespace GW2_Addon_Manager
             _configurationManager = new ConfigurationManager();
             DataContext = UpdatingViewModel.GetInstance;
             InitializeComponent();
-
-            LoaderSetup settingUp = new LoaderSetup(new ConfigurationManager());
-            Task.Run(() => UpdateHelper.UpdateAll());
-
             launchOnClose.IsChecked = _configurationManager.UserConfig.LaunchGame;
+        }
+
+        public override void BeginInit()
+        {
+            Task.Run(UpdateHelper.UpdateAllAsync);
+            base.BeginInit();
         }
 
         /***************************** Titlebar Window Drag *****************************/

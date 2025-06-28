@@ -1,6 +1,7 @@
 ﻿using System.Linq;
 using System.Windows;
 using GW2_Addon_Manager.App.Configuration;
+using GW2_Addon_Manager.Backend;
 using GW2_Addon_Manager.Backend.Updating;
 using GW2_Addon_Manager.Dependencies.FileSystem;
 using GW2_Addon_Manager.Dependencies.WebClient;
@@ -46,7 +47,7 @@ namespace GW2_Addon_Manager
             if (MessageBox.Show(deletemsg, "Warning!", MessageBoxButton.YesNo, MessageBoxImage.Warning) == MessageBoxResult.Yes)
                 if (MessageBox.Show(secondPrecautionaryMsg, "Absolutely Sure?", MessageBoxButton.YesNo, MessageBoxImage.Warning) == MessageBoxResult.Yes)
                 {
-                    new Configuration(_configurationManager, new UpdateHelper(new WebClientWrapper()), new FileSystemManager()).DeleteAllAddons();
+                    new Configuration(_configurationManager, new UpdateHelper(WebClientFactory.Create()), new FileSystemManager()).DeleteAllAddons();
                     DisplayAddonStatus();
 
                     //post-delete info message

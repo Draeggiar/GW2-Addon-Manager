@@ -3,6 +3,7 @@ using Newtonsoft.Json;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net;
+using System.Threading.Tasks;
 using System.Windows;
 using GW2_Addon_Manager.App.Configuration;
 using GW2_Addon_Manager.Backend.Updating;
@@ -56,7 +57,7 @@ namespace GW2_Addon_Manager
             return JsonConvert.DeserializeObject(release_info_json);
         }
 
-        public static async void UpdateAll()
+        public static async Task UpdateAllAsync()
         {
             UpdatingViewModel viewModel = UpdatingViewModel.GetInstance;
 

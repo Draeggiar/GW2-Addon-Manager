@@ -1,15 +1,14 @@
 ﻿using System;
-using Microsoft.VisualBasic.FileIO;
-using System.ComponentModel;
 using System.IO;
 using System.IO.Compression;
 using System.Linq;
 using System.Net;
+using System.Net.Http;
 using System.Threading.Tasks;
 using GW2_Addon_Manager.App.Configuration;
 using GW2_Addon_Manager.App.Configuration.Model;
 using GW2_Addon_Manager.Dependencies.FileSystem;
-using GW2_Addon_Manager.Dependencies.WebClient;
+using Microsoft.VisualBasic.FileIO;
 
 namespace GW2_Addon_Manager.Backend.Updating
 {
@@ -19,6 +18,7 @@ namespace GW2_Addon_Manager.Backend.Updating
         private readonly string _addonExpandedPath;
         private readonly AddonInfoFromYaml _addonInfo;
         private readonly string _addonInstallPath;
+        private IHttpClientFactory _httpClientFactory = new HttpClientFactory();
 
         private readonly string _addonName;
 
@@ -59,35 +59,35 @@ namespace GW2_Addon_Manager.Backend.Updating
         /// </summary>
         private async Task GitCheckUpdate()
         {
-            using var webClient = WebClientFactory.Create();
-            var releaseInfo = new UpdateHelper(webClient).GitReleaseInfo(_addonInfo.host_url);
+            var releaseInfo = await new UpdateHelper(_httpClientFactory).GitReleaseInfoAsync(_addonInfo.host_url);
             if (releaseInfo == null)
                 return;
             _latestVersion = releaseInfo.tag_name;
 
-            var currentAddonVersion = _configurationManager.UserConfig.AddonsList.FirstOrDefault(a => a.Name == _addonName);
+            var currentAddonVersion =
+                _configurationManager.UserConfig.AddonsList.FirstOrDefault(a => a.Name == _addonName);
             if (currentAddonVersion != null && currentAddonVersion.Version == _latestVersion)
                 return;
 
             string downloadLink = releaseInfo.assets[0].browser_download_url;
             _viewModel.ProgBarLabel = "Downloading " + _addonInfo.addon_name + " " + _latestVersion;
-            await Download(downloadLink, webClient);
+            await Download(downloadLink);
         }
 
         private async Task StandaloneCheckUpdate()
         {
             var downloadUrl = _addonInfo.host_url;
-            
-            using var client = WebClientFactory.Create();
+
+            using var client = _httpClientFactory.Create();
             if (_addonInfo.version_url != null)
             {
-                _latestVersion = client.DownloadString(_addonInfo.version_url);
+                _latestVersion = await client.GetStringAsync(_addonInfo.version_url);
             }
             else
             {
                 //for self-updating addons' first installation
                 _viewModel.ProgBarLabel = "Downloading " + _addonInfo.addon_name;
-                await Download(downloadUrl, client);
+                await Download(downloadUrl);
                 return;
             }
 
@@ -97,19 +97,17 @@ namespace GW2_Addon_Manager.Backend.Updating
                 return;
 
             _viewModel.ProgBarLabel = "Downloading " + _addonInfo.addon_name + " " + _latestVersion;
-            await Download(downloadUrl, client);
+            await Download(downloadUrl);
         }
 
 
         /***** DOWNLOAD *****/
 
         /// <summary>
-        ///     Downloads an add-on from the url specified in <paramref name="url" /> using the WebClient provided in
-        ///     <paramref name="client" />.
+        ///     Downloads an add-on from the url specified in <paramref name="url" />
         /// </summary>
         /// <param name="url"></param>
-        /// <param name="client"></param>
-        private async Task Download(string url, WebClient client)
+        private async Task Download(string url)
         {
             //this calls helper method to fetch filename if it is not exposed in URL
             _fileName = Path.Combine(
@@ -122,10 +120,35 @@ namespace GW2_Addon_Manager.Backend.Updating
             if (File.Exists(_fileName))
                 File.Delete(_fileName);
 
-            client.DownloadProgressChanged += addon_DownloadProgressChanged;
+            using var client = _httpClientFactory.Create();
+            using (var response = await client.GetAsync(url, HttpCompletionOption.ResponseHeadersRead))
+            {
+                response.EnsureSuccessStatusCode();
+                var totalBytes = response.Content.Headers.ContentLength ?? -1L;
+                var canReportProgress = totalBytes != -1;
 
-            await client.DownloadFileTaskAsync(new Uri(url), _fileName);
+                using (var contentStream = await response.Content.ReadAsStreamAsync()) 
+                    await ReadResponseWithProgress(contentStream, canReportProgress, totalBytes);
+            }
+
             Install();
+        }
+
+        private async Task ReadResponseWithProgress(Stream contentStream, bool canReportProgress, long totalBytes)
+        {
+            using var fileStream = new FileStream(_fileName, FileMode.Create, FileAccess.Write, FileShare.None,
+                8192, true);
+            var buffer = new byte[8192];
+            long totalRead = 0;
+            int read;
+            while ((read = await contentStream.ReadAsync(buffer, 0, buffer.Length)) > 0)
+            {
+                await fileStream.WriteAsync(buffer, 0, read);
+                totalRead += read;
+                if (!canReportProgress) continue;
+                var progress = (int)(totalRead * 100L / totalBytes);
+                _viewModel.DownloadProgress = progress;
+            }
         }
 
         /* helper method */
@@ -207,7 +230,7 @@ namespace GW2_Addon_Manager.Backend.Updating
             }
             else
             {
-                var newAddonConfig = new AddonData {Name = _addonName, Installed = true, Version = _latestVersion};
+                var newAddonConfig = new AddonData { Name = _addonName, Installed = true, Version = _latestVersion };
                 _configurationManager.UserConfig.AddonsList.Add(newAddonConfig);
             }
 
@@ -386,12 +409,6 @@ namespace GW2_Addon_Manager.Backend.Updating
                     }
                 }
             }
-        }
-
-        /***** DOWNLOAD EVENTS *****/
-        private void addon_DownloadProgressChanged(object sender, DownloadProgressChangedEventArgs e)
-        {
-            _viewModel.DownloadProgress = e.ProgressPercentage;
         }
     }
 }

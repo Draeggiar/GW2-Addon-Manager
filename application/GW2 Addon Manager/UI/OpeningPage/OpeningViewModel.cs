@@ -1,18 +1,17 @@
-﻿using GalaSoft.MvvmLight.Command;
-using IWshRuntimeLibrary;
-using System;
+﻿using System;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.IO;
 using System.Runtime.CompilerServices;
 using System.Windows;
 using System.Windows.Input;
+using GalaSoft.MvvmLight.Command;
 using GW2_Addon_Manager.App.Configuration;
 using GW2_Addon_Manager.Backend;
 using GW2_Addon_Manager.Dependencies.FileSystem;
-using GW2_Addon_Manager.Dependencies.WebClient;
-using File = System.IO.File;
+using IWshRuntimeLibrary;
 using Localization;
+using File = System.IO.File;
 
 namespace GW2_Addon_Manager
 {
@@ -229,7 +228,7 @@ namespace GW2_Addon_Manager
 
             _configurationManager = new ConfigurationManager();
             _pluginManagement = new PluginManagement(_configurationManager);
-            _configuration = new Configuration(_configurationManager, new UpdateHelper(WebClientFactory.Create()), new FileSystemManager());
+            _configuration = new Configuration(_configurationManager, new UpdateHelper(new HttpClientFactory()), new FileSystemManager());
 
             AddonList = new ApprovedList(_configurationManager).GenerateAddonList();
 
@@ -241,6 +240,7 @@ namespace GW2_Addon_Manager
 
             GamePath = _configurationManager.UserConfig.GamePath;
         }
+        
         /// <summary>
         /// Fetches the only instance of the OpeningViewModel and creates it if it has not been initialized yet.
         /// </summary>

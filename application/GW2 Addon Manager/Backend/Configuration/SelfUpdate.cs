@@ -1,12 +1,11 @@
-﻿using Localization;
-using System.ComponentModel;
+﻿using System.ComponentModel;
 using System.Diagnostics;
 using System.IO;
-using System.Net;
+using System.Net.Http;
 using System.Threading.Tasks;
 using System.Windows;
 using GW2_Addon_Manager.Backend;
-using GW2_Addon_Manager.Dependencies.WebClient;
+using Localization;
 
 namespace GW2_Addon_Manager
 {
@@ -48,7 +47,8 @@ namespace GW2_Addon_Manager
                 Directory.Delete(update_folder, true);
 
             //check application version
-            dynamic latestInfo = new UpdateHelper(WebClientFactory.Create()).GitReleaseInfo(applicationRepoUrl);
+            var httpClientFactory = new HttpClientFactory();
+            dynamic latestInfo = await new UpdateHelper(httpClientFactory).GitReleaseInfoAsync(applicationRepoUrl);
             if (latestInfo == null)
                 return;
 
@@ -56,12 +56,36 @@ namespace GW2_Addon_Manager
             viewModel.UpdateAvailable = $"{StaticText.Downloading} {latestInfo.tag_name}";
 
             Directory.CreateDirectory(update_folder);
-            using (var client = WebClientFactory.Create())
+            
+            using var client = httpClientFactory.Create();
+            var response = await client.GetAsync(downloadUrl);
+            response.EnsureSuccessStatusCode();
+            await SaveFilesWithProgress(response);
+        }
+
+        private async Task SaveFilesWithProgress(HttpResponseMessage response)
+        {
+            using (var fs = new FileStream(Path.Combine(update_folder, update_name), FileMode.Create, FileAccess.Write, FileShare.None))
             {
-                client.DownloadProgressChanged += new DownloadProgressChangedEventHandler(selfUpdate_DownloadProgress);
-                client.DownloadFileCompleted += new AsyncCompletedEventHandler(selfUpdate_DownloadCompleted);
-                await client.DownloadFileTaskAsync(new System.Uri(downloadUrl), Path.Combine(update_folder, update_name));
+                var totalBytes = response.Content.Headers.ContentLength ?? -1L;
+                var canReportProgress = totalBytes != -1;
+                var buffer = new byte[81920];
+                long totalRead = 0;
+                using (var stream = await response.Content.ReadAsStreamAsync())
+                {
+                    int read;
+                    while ((read = await stream.ReadAsync(buffer, 0, buffer.Length)) > 0)
+                    {
+                        await fs.WriteAsync(buffer, 0, read);
+                        totalRead += read;
+                        if (!canReportProgress) continue;
+                        var progress = (int)(totalRead * 100 / totalBytes);
+                        Application.Current.Dispatcher.Invoke(() => viewModel.UpdateDownloadProgress = progress);
+                    }
+                }
             }
+
+            Application.Current.Dispatcher.Invoke(() => selfUpdate_DownloadCompleted(this, new AsyncCompletedEventArgs(null, false, null)));
         }
 
         /* updating download status on UI */
@@ -69,10 +93,6 @@ namespace GW2_Addon_Manager
         {
             viewModel.UpdateAvailable = $"{StaticText.DownloadComplete}!";
             Application.Current.Properties["update_self"] = true;
-        }
-        private void selfUpdate_DownloadProgress(object sender, DownloadProgressChangedEventArgs e)
-        {
-            viewModel.UpdateDownloadProgress = e.ProgressPercentage;
         }
 
 

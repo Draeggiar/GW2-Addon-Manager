@@ -1,19 +1,20 @@
-﻿using Microsoft.WindowsAPICodePack.Dialogs;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
+using System.Windows.Navigation;
 using GW2_Addon_Manager.App.Configuration;
 using GW2_Addon_Manager.Backend;
 using GW2_Addon_Manager.Dependencies.FileSystem;
-using GW2_Addon_Manager.Dependencies.WebClient;
+using Localization;
+using Microsoft.WindowsAPICodePack.Dialogs;
 using Application = System.Windows.Application;
 using MessageBox = System.Windows.MessageBox;
-using Localization;
 
 namespace GW2_Addon_Manager
 {
@@ -22,8 +23,8 @@ namespace GW2_Addon_Manager
     /// </summary>
     public partial class OpeningView : Page
     {
-        const string releases_url = "https://github.com/fmmmlee/GW2-Addon-Manager/releases";
-        const string UpdateNotificationFile = "updatenotification.txt";
+        private const string ReleasesUrl = "https://github.com/Draeggiar/GW2-Addon-Manager/releases";
+        private const string UpdateNotificationFile = "updatenotification.txt";
 
         private readonly IConfigurationManager _configurationManager;
         private readonly PluginManagement _pluginManagement;
@@ -40,25 +41,30 @@ namespace GW2_Addon_Manager
             _configurationManager = new ConfigurationManager();
             _pluginManagement = new PluginManagement(_configurationManager);
             _pluginManagement.DisplayAddonStatus();
-
-            var configuration = new Configuration(_configurationManager, new UpdateHelper(WebClientFactory.Create()), new FileSystemManager());        
-
+            
             InitializeComponent();
-            SetUpdateButtonVisibility(configuration);
 
             //update notification
             if (File.Exists(UpdateNotificationFile))
             {
-                Process.Start(releases_url);
+                Process.Start(ReleasesUrl);
                 File.Delete(UpdateNotificationFile);
             }
         }
 
-        private void SetUpdateButtonVisibility(Configuration configuration)
+        public override void BeginInit()
         {
-            if (!configuration.CheckIfNewVersionIsAvailable(out var latestVersion)) return;
+            var configuration = new Configuration(_configurationManager, new UpdateHelper(new HttpClientFactory()), new FileSystemManager());        
+            Task.Run(() => SetUpdateButtonVisibilityAsync(configuration));
+            base.BeginInit();
+        }
 
-            _viewModel.UpdateAvailable = $"{latestVersion} {StaticText.Available.ToLower()}!";
+        private async Task SetUpdateButtonVisibilityAsync(Configuration configuration)
+        {
+            var checkResult = await configuration.CheckIfNewVersionIsAvailableAsync();
+            if (!checkResult.isUpdateAvailable) return;
+
+            _viewModel.UpdateAvailable = $"{checkResult.latestVersion} {StaticText.Available.ToLower()}!";
             _viewModel.UpdateLinkVisibility = Visibility.Visible;
         }
 
@@ -92,7 +98,7 @@ namespace GW2_Addon_Manager
         private void close_clicked(object sender, RoutedEventArgs e)
         {
             SelfUpdate.startUpdater();
-            System.Windows.Application.Current.Shutdown();
+            Application.Current.Shutdown();
         }
 
         private void minimize_clicked(object sender, RoutedEventArgs e)
@@ -157,7 +163,7 @@ namespace GW2_Addon_Manager
         }
 
         /***** Hyperlink Handler *****/
-        private void Hyperlink_RequestNavigate(object sender, System.Windows.Navigation.RequestNavigateEventArgs e)
+        private void Hyperlink_RequestNavigate(object sender, RequestNavigateEventArgs e)
         {
             Process.Start(new ProcessStartInfo(e.Uri.AbsoluteUri));
             e.Handled = true;

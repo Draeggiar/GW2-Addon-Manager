@@ -1,4 +1,5 @@
 ﻿using System.Dynamic;
+using System.Threading.Tasks;
 using GW2_Addon_Manager;
 using GW2_Addon_Manager.App.Configuration;
 using GW2_Addon_Manager.App.Configuration.Model;
@@ -28,7 +29,7 @@ namespace ApplicationTests.Backend.Configuration
 
         [TestCase("v.1.0", "v.1.1", ExpectedResult = true)]
         [TestCase("v.1.0", "v.1.0", ExpectedResult = false)]
-        public bool ShouldCheck_IfNewVersionIsAvailable(string currentVersion, string latestVersion)
+        public async Task<bool> ShouldCheck_IfNewVersionIsAvailable(string currentVersion, string latestVersion)
         {
             _configManagerMock.SetupGet(x => x.ApplicationVersion).Returns(currentVersion);
             _updateHelperMock.Setup(x => x.GitReleaseInfoAsync(It.IsAny<string>())).ReturnsAsync(() =>
@@ -41,10 +42,10 @@ namespace ApplicationTests.Backend.Configuration
             var configuration =
                 new GW2_Addon_Manager.Configuration(_configManagerMock.Object, _updateHelperMock.Object, _fileSystemManagerMock.Object);
 
-            var isUpdateAvailable = configuration.CheckIfNewVersionIsAvailable(out var latestVersionResult);
+            var checkResult = await configuration.CheckIfNewVersionIsAvailableAsync();
 
-            Assert.That(latestVersionResult, Is.EqualTo(latestVersion));
-            return isUpdateAvailable;
+            Assert.That(checkResult.latestVersion, Is.EqualTo(latestVersion));
+            return checkResult.isUpdateAvailable;
         }
 
         [TestCase("bin64")]
@@ -80,7 +81,7 @@ namespace ApplicationTests.Backend.Configuration
         }
 
         [Test]
-        public void ShouldTakeLatestVersion_IfNewestVersionIsNull()
+        public async Task ShouldTakeLatestVersion_IfNewestVersionIsNull()
         {
             _configManagerMock.SetupGet(x => x.ApplicationVersion).Returns("1.0");
             _updateHelperMock.Setup(x => x.GitReleaseInfoAsync(It.IsAny<string>())).ReturnsAsync(default);
@@ -88,10 +89,10 @@ namespace ApplicationTests.Backend.Configuration
             var configuration =
                 new GW2_Addon_Manager.Configuration(_configManagerMock.Object, _updateHelperMock.Object, _fileSystemManagerMock.Object);
 
-            var isUpdateAvailable = configuration.CheckIfNewVersionIsAvailable(out var latestVersionResult);
+            var checkResult = await configuration.CheckIfNewVersionIsAvailableAsync();
 
-            Assert.That(isUpdateAvailable, Is.False);
-            Assert.That(latestVersionResult, Is.EqualTo("1.0"));
+            Assert.That(checkResult.isUpdateAvailable, Is.False);
+            Assert.That(checkResult.latestVersion, Is.EqualTo("1.0"));
         }
     }
 }

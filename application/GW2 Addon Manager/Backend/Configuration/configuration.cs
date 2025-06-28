@@ -1,4 +1,5 @@
 ﻿using System.Diagnostics;
+using System.Threading.Tasks;
 using System.Windows;
 using GW2_Addon_Manager.App.Configuration;
 using GW2_Addon_Manager.App.Configuration.Model;
@@ -11,7 +12,7 @@ namespace GW2_Addon_Manager
     /// </summary>
     public class Configuration
     {
-        static readonly string ApplicationRepoUrl = "https://api.github.com/repos/fmmmlee/GW2-Addon-Manager/releases/latest";
+        private const string ApplicationRepoUrl = "https://api.github.com/repos/Draeggiar/GW2-Addon-Manager/releases/latest";
 
         private readonly IConfigurationManager _configurationManager;
         private readonly IUpdateHelper _updateHelper;
@@ -28,17 +29,14 @@ namespace GW2_Addon_Manager
         /// <summary>
         ///     Checks if there is a new version of the application available.
         /// </summary>
-        public bool CheckIfNewVersionIsAvailable(out string latestVersion)
+        public async Task<(bool isUpdateAvailable, string latestVersion)> CheckIfNewVersionIsAvailableAsync()
         {
-            var releaseInfo = _updateHelper.GitReleaseInfoAsync(ApplicationRepoUrl).GetAwaiter().GetResult();
+            var releaseInfo = await _updateHelper.GitReleaseInfoAsync(ApplicationRepoUrl);
             if (releaseInfo == null)
-            {
-                latestVersion = _configurationManager.ApplicationVersion;
-                return false;
-            }
+                return (false, _configurationManager.ApplicationVersion);
 
-            latestVersion = releaseInfo.tag_name;
-            return latestVersion != _configurationManager.ApplicationVersion;
+            var latestVersion = releaseInfo.tag_name;
+            return (latestVersion != _configurationManager.ApplicationVersion, latestVersion);
         }
 
         /// <summary>

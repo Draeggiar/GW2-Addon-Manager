@@ -240,6 +240,7 @@ namespace GW2_Addon_Manager
 
             GamePath = _configurationManager.UserConfig.GamePath;
         }
+        
         /// <summary>
         /// Fetches the only instance of the OpeningViewModel and creates it if it has not been initialized yet.
         /// </summary>

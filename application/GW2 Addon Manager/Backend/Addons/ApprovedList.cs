@@ -44,7 +44,7 @@ namespace GW2_Addon_Manager
                 File.Delete(tempFileName);
 
             //fetching new version
-            updateHelper.DownloadFileFromGithubApiAsync(RepoUrl + "/zipball", tempFileName);
+            await updateHelper.DownloadFileFromGithubApiAsync(RepoUrl + "/zipball", tempFileName);
 
             ZipFile.ExtractToDirectory(tempFileName, AddonFolder);
             var downloaded = Directory.EnumerateDirectories(AddonFolder).First();
@@ -68,7 +68,7 @@ namespace GW2_Addon_Manager
         /// <returns>A list of AddonInfo objects representing all approved add-ons.</returns>
         public ObservableCollection<AddonInfoFromYaml> GenerateAddonList()
         {
-            FetchListFromRepoAsync();
+            Task.Run(FetchListFromRepoAsync).Wait();
 
             var addons = new ObservableCollection<AddonInfoFromYaml>(); //List of AddonInfo objects
             var addonDirectories =

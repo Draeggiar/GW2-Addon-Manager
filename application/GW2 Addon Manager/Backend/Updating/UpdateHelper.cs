@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Net;
+using System.Net.Http;
 using System.Threading.Tasks;
 using System.Windows;
 using GW2_Addon_Manager.App.Configuration;
@@ -26,9 +26,9 @@ public class UpdateHelper : IUpdateHelper
         try
         {
             using var httpClient = _clientFactory.Create();
-            return await httpClient.GetStringAsync(url);
+            return await httpClient.GetStringAsync(url).ConfigureAwait(false);
         }
-        catch (WebException ex)
+        catch (HttpRequestException ex)
         {
             MessageBox.Show(
                 "Github servers returned an error; please try again in a few minutes.\n\nThe error was: " +
@@ -43,11 +43,11 @@ public class UpdateHelper : IUpdateHelper
         {
             using var httpClient = _clientFactory.Create();
 
-            using var response = await httpClient.GetAsync(url);
+            using var response = await httpClient.GetAsync(url).ConfigureAwait(false);
             using var fs = File.Create(destPath);
             await response.Content.CopyToAsync(fs);
         }
-        catch (WebException ex)
+        catch (HttpRequestException ex)
         {
             MessageBox.Show(
                 "Github servers returned an error; please try again in a few minutes.\n\nThe error was: " +
@@ -58,7 +58,7 @@ public class UpdateHelper : IUpdateHelper
 
     public async Task<dynamic> GitReleaseInfoAsync(string gitUrl)
     {
-        var release_info_json = await DownloadStringFromGithubApiAsync(gitUrl);
+        var release_info_json = await DownloadStringFromGithubApiAsync(gitUrl).ConfigureAwait(false);
         return JsonConvert.DeserializeObject(release_info_json);
     }
 

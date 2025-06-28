@@ -1,13 +1,10 @@
-﻿using System;
-using System.ComponentModel;
-using System.IO;
+﻿using System.IO;
 using System.IO.Compression;
 using System.Linq;
-using System.Net;
+using System.Net.Http;
 using System.Threading.Tasks;
 using GW2_Addon_Manager.App.Configuration;
 using GW2_Addon_Manager.Backend;
-using GW2_Addon_Manager.Dependencies.WebClient;
 
 namespace GW2_Addon_Manager
 {
@@ -42,27 +39,31 @@ namespace GW2_Addon_Manager
         /// <returns></returns>
         public async Task HandleLoaderUpdate(bool force)
         {
-            dynamic releaseInfo = new UpdateHelper(WebClientFactory.Create()).GitReleaseInfo(loader_git_url);
+            dynamic releaseInfo = await new UpdateHelper(new HttpClientFactory()).GitReleaseInfoAsync(loader_git_url);
             if (releaseInfo == null)
                 return;
 
             loader_d3d11_destination = Path.Combine(loader_game_path, "d3d11.dll");
-            loader_dxgi_destination = new string[] { Path.Combine(loader_game_path, "bin64/cef/dxgi.dll"),
-                                       Path.Combine(loader_game_path, "bin64/dxgi.dll"),
-                                       Path.Combine(loader_game_path, "dxgi.dll") };
+            loader_dxgi_destination = new string[]
+            {
+                Path.Combine(loader_game_path, "bin64/cef/dxgi.dll"),
+                Path.Combine(loader_game_path, "bin64/dxgi.dll"),
+                Path.Combine(loader_game_path, "dxgi.dll")
+            };
             loader_self_destination = Path.Combine(loader_game_path, "addonLoader.dll");
 
             latestLoaderVersion = releaseInfo.tag_name;
 
             if (!force && File.Exists(loader_d3d11_destination) &&
-               loader_dxgi_destination.All(File.Exists) && 
-               File.Exists(loader_self_destination) &&
-               _configurationManager.UserConfig.LoaderVersion == latestLoaderVersion)
+                loader_dxgi_destination.All(File.Exists) &&
+                File.Exists(loader_self_destination) &&
+                _configurationManager.UserConfig.LoaderVersion == latestLoaderVersion)
                 return;
 
             string downloadLink = releaseInfo.assets[0].browser_download_url;
             await Download(downloadLink);
         }
+
         private async Task Download(string url)
         {
             viewModel.ProgBarLabel = "Downloading Addon Loader";
@@ -72,15 +73,38 @@ namespace GW2_Addon_Manager
             if (File.Exists(fileName))
                 File.Delete(fileName);
 
-            using (var client = WebClientFactory.Create())
+            using (var client = new HttpClientFactory().Create())
             {
-                client.DownloadProgressChanged += new DownloadProgressChangedEventHandler(loader_DownloadProgressChanged);
-                client.DownloadFileCompleted += new AsyncCompletedEventHandler(loader_DownloadCompleted);
-
-                await client.DownloadFileTaskAsync(new System.Uri(url), fileName);
+                using (var response = await client.GetAsync(url))
+                {
+                    response.EnsureSuccessStatusCode();
+                    await SaveFileWithProgress(response);
+                }
             }
+
             Install();
         }
+
+        private async Task SaveFileWithProgress(HttpResponseMessage response)
+        {
+            using var fs = new FileStream(fileName, FileMode.Create, FileAccess.Write, FileShare.None);
+            var totalBytes = response.Content.Headers.ContentLength ?? -1L;
+            var canReportProgress = totalBytes != -1;
+            var buffer = new byte[81920];
+            long totalRead = 0;
+            using var stream = await response.Content.ReadAsStreamAsync();
+            int read;
+            while ((read = await stream.ReadAsync(buffer, 0, buffer.Length)) > 0)
+            {
+                await fs.WriteAsync(buffer, 0, read);
+                totalRead += read;
+                if (canReportProgress)
+                {
+                    viewModel.DownloadProgress = (int)(totalRead * 100 / totalBytes);
+                }
+            }
+        }
+
         private void Install()
         {
             viewModel.ProgBarLabel = "Installing Addon Loader";
@@ -100,18 +124,5 @@ namespace GW2_Addon_Manager
             _configurationManager.UserConfig.LoaderVersion = latestLoaderVersion;
             _configurationManager.SaveConfiguration();
         }
-
-
-        /***** DOWNLOAD EVENTS *****/
-        void loader_DownloadProgressChanged(object sender, DownloadProgressChangedEventArgs e)
-        {
-            viewModel.DownloadProgress = e.ProgressPercentage;
-        }
-
-        void loader_DownloadCompleted(object sender, AsyncCompletedEventArgs e)
-        {
-
-        }
-
     }
 }

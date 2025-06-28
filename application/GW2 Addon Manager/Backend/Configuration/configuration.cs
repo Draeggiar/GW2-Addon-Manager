@@ -1,4 +1,5 @@
-﻿using System.Windows;
+﻿using System.Diagnostics;
+using System.Windows;
 using GW2_Addon_Manager.App.Configuration;
 using GW2_Addon_Manager.App.Configuration.Model;
 using GW2_Addon_Manager.Dependencies.FileSystem;
@@ -13,10 +14,10 @@ namespace GW2_Addon_Manager
         static readonly string ApplicationRepoUrl = "https://api.github.com/repos/fmmmlee/GW2-Addon-Manager/releases/latest";
 
         private readonly IConfigurationManager _configurationManager;
-        private readonly UpdateHelper _updateHelper;
+        private readonly IUpdateHelper _updateHelper;
         private readonly IFileSystemManager _fileSystemManager;
 
-        public Configuration(IConfigurationManager configurationManager, UpdateHelper updateHelper,
+        public Configuration(IConfigurationManager configurationManager, IUpdateHelper updateHelper,
             IFileSystemManager fileSystemManager)
         {
             _configurationManager = configurationManager;
@@ -29,7 +30,7 @@ namespace GW2_Addon_Manager
         /// </summary>
         public bool CheckIfNewVersionIsAvailable(out string latestVersion)
         {
-            var releaseInfo = _updateHelper.GitReleaseInfo(ApplicationRepoUrl);
+            var releaseInfo = _updateHelper.GitReleaseInfoAsync(ApplicationRepoUrl).GetAwaiter().GetResult();
             if (releaseInfo == null)
             {
                 latestVersion = _configurationManager.ApplicationVersion;
@@ -57,7 +58,7 @@ namespace GW2_Addon_Manager
         /// </summary>
         private void RestartApplication()
         {
-            System.Diagnostics.Process.Start(Application.ResourceAssembly.Location);
+            Process.Start(Application.ResourceAssembly.Location);
             Application.Current.Shutdown();
         }
 

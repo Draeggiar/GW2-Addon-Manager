@@ -1,5 +1,4 @@
-﻿using Microsoft.WindowsAPICodePack.Dialogs;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
@@ -7,13 +6,14 @@ using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
+using System.Windows.Navigation;
 using GW2_Addon_Manager.App.Configuration;
 using GW2_Addon_Manager.Backend;
 using GW2_Addon_Manager.Dependencies.FileSystem;
-using GW2_Addon_Manager.Dependencies.WebClient;
+using Localization;
+using Microsoft.WindowsAPICodePack.Dialogs;
 using Application = System.Windows.Application;
 using MessageBox = System.Windows.MessageBox;
-using Localization;
 
 namespace GW2_Addon_Manager
 {
@@ -41,7 +41,7 @@ namespace GW2_Addon_Manager
             _pluginManagement = new PluginManagement(_configurationManager);
             _pluginManagement.DisplayAddonStatus();
 
-            var configuration = new Configuration(_configurationManager, new UpdateHelper(WebClientFactory.Create()), new FileSystemManager());        
+            var configuration = new Configuration(_configurationManager, new UpdateHelper(new HttpClientFactory()), new FileSystemManager());        
 
             InitializeComponent();
             SetUpdateButtonVisibility(configuration);
@@ -92,7 +92,7 @@ namespace GW2_Addon_Manager
         private void close_clicked(object sender, RoutedEventArgs e)
         {
             SelfUpdate.startUpdater();
-            System.Windows.Application.Current.Shutdown();
+            Application.Current.Shutdown();
         }
 
         private void minimize_clicked(object sender, RoutedEventArgs e)
@@ -157,7 +157,7 @@ namespace GW2_Addon_Manager
         }
 
         /***** Hyperlink Handler *****/
-        private void Hyperlink_RequestNavigate(object sender, System.Windows.Navigation.RequestNavigateEventArgs e)
+        private void Hyperlink_RequestNavigate(object sender, RequestNavigateEventArgs e)
         {
             Process.Start(new ProcessStartInfo(e.Uri.AbsoluteUri));
             e.Handled = true;

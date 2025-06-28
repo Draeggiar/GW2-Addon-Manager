@@ -77,7 +77,6 @@ move "$(TargetDir)*.dll" "$(TargetDir)resources\plugins"</PostBuildEvent>
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="CommonServiceLocator" Version="2.0.5" />
-    <PackageReference Include="JetBrains.Annotations" Version="2021.1.0" />
     <PackageReference Include="MvvmLight" Version="5.4.1.1" />
     <PackageReference Include="MvvmLightLibs" Version="5.4.1.1" />
     <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
@@ -88,6 +87,7 @@ move "$(TargetDir)*.dll" "$(TargetDir)resources\plugins"</PostBuildEvent>
   <ItemGroup>
     <Reference Include="Microsoft.VisualBasic" />
     <Reference Include="System.IO.Compression" />
+    <Reference Include="System.Net.Http" />
     <Reference Include="System.Threading.Tasks" />
     <Reference Include="Microsoft.CSharp" />
     <Reference Include="System.Xaml" />

@@ -1,9 +1,8 @@
-﻿using System;
-using System.Collections.ObjectModel;
+﻿using System.Collections.ObjectModel;
 using System.IO;
 using System.IO.Compression;
 using System.Linq;
-using System.Net;
+using System.Threading.Tasks;
 using GW2_Addon_Manager.App.Configuration;
 using GW2_Addon_Manager.Backend;
 using Newtonsoft.Json;
@@ -27,42 +26,40 @@ namespace GW2_Addon_Manager
         /// <summary>
         /// Check current version of addon list against remote repo for changes and fetch them
         /// </summary>
-        private void FetchListFromRepo()
+        private async Task FetchListFromRepoAsync()
         {
             const string tempFileName = "addonlist";
-            using (var client = WebClientFactory.Create())
-            {
-                var updateHelper = new UpdateHelper(client);
-                var raw = updateHelper.DownloadStringFromGithubAPI(RepoUrl + "/branches");
+            var httpClientFactory = new HttpClientFactory();
+            var updateHelper = new UpdateHelper(httpClientFactory);
+            var raw = await updateHelper.DownloadStringFromGithubApiAsync(RepoUrl + "/branches");
 
-                var result = JsonConvert.DeserializeObject<BranchInfo[]>(raw);
-                var master = result.Single(r => r.Name == "master").Commit.Sha;
+            var result = JsonConvert.DeserializeObject<BranchInfo[]>(raw);
+            var master = result.Single(r => r.Name == "master").Commit.Sha;
 
-                if (master == _configManager.UserConfig.AddonsList.Hash || master is null) return;
+            if (master == _configManager.UserConfig.AddonsList.Hash || master is null) return;
 
-                if (Directory.Exists(AddonFolder))
-                    Directory.Delete(AddonFolder, true);
-                if (File.Exists(tempFileName))
-                    File.Delete(tempFileName);
-
-                //fetching new version
-                updateHelper.DownloadFileFromGithubAPI(RepoUrl + "/zipball", tempFileName);
-
-                ZipFile.ExtractToDirectory(tempFileName, AddonFolder);
-                var downloaded = Directory.EnumerateDirectories(AddonFolder).First();
-                foreach (var entry in Directory.EnumerateFileSystemEntries(downloaded))
-                {
-                    Directory.Move(entry, AddonFolder + "\\" + Path.GetFileName(entry));
-                }
-
-                //updating version in config file
-                _configManager.UserConfig.AddonsList.Hash = master;
-                _configManager.SaveConfiguration();
-
-                //cleanup
-                Directory.Delete(downloaded, true);
+            if (Directory.Exists(AddonFolder))
+                Directory.Delete(AddonFolder, true);
+            if (File.Exists(tempFileName))
                 File.Delete(tempFileName);
+
+            //fetching new version
+            updateHelper.DownloadFileFromGithubApiAsync(RepoUrl + "/zipball", tempFileName);
+
+            ZipFile.ExtractToDirectory(tempFileName, AddonFolder);
+            var downloaded = Directory.EnumerateDirectories(AddonFolder).First();
+            foreach (var entry in Directory.EnumerateFileSystemEntries(downloaded))
+            {
+                Directory.Move(entry, AddonFolder + "\\" + Path.GetFileName(entry));
             }
+
+            //updating version in config file
+            _configManager.UserConfig.AddonsList.Hash = master;
+            _configManager.SaveConfiguration();
+
+            //cleanup
+            Directory.Delete(downloaded, true);
+            File.Delete(tempFileName);
         }
 
         /// <summary>
@@ -71,7 +68,7 @@ namespace GW2_Addon_Manager
         /// <returns>A list of AddonInfo objects representing all approved add-ons.</returns>
         public ObservableCollection<AddonInfoFromYaml> GenerateAddonList()
         {
-            FetchListFromRepo();
+            FetchListFromRepoAsync();
 
             var addons = new ObservableCollection<AddonInfoFromYaml>(); //List of AddonInfo objects
             var addonDirectories =

@@ -42,7 +42,7 @@ namespace GW2_Addon_Manager
         /// <returns></returns>
         public async Task HandleLoaderUpdate(bool force)
         {
-            dynamic releaseInfo = new UpdateHelper(new WebClientWrapper()).GitReleaseInfo(loader_git_url);
+            dynamic releaseInfo = new UpdateHelper(WebClientFactory.Create()).GitReleaseInfo(loader_git_url);
             if (releaseInfo == null)
                 return;
 

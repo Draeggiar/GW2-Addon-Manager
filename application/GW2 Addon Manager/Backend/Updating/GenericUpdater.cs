@@ -9,6 +9,7 @@ using System.Threading.Tasks;
 using GW2_Addon_Manager.App.Configuration;
 using GW2_Addon_Manager.App.Configuration.Model;
 using GW2_Addon_Manager.Dependencies.FileSystem;
+using GW2_Addon_Manager.Dependencies.WebClient;
 
 namespace GW2_Addon_Manager.Backend.Updating
 {
@@ -68,7 +69,7 @@ namespace GW2_Addon_Manager.Backend.Updating
             if (currentAddonVersion != null && currentAddonVersion.Version == _latestVersion)
                 return;
 
-            var downloadLink = releaseInfo.assets[0].browser_download_url;
+            string downloadLink = releaseInfo.assets[0].browser_download_url;
             _viewModel.ProgBarLabel = "Downloading " + _addonInfo.addon_name + " " + _latestVersion;
             await Download(downloadLink, webClient);
         }

@@ -8,6 +8,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using GW2_Addon_Manager.App.Configuration;
+using GW2_Addon_Manager.Backend;
 using GW2_Addon_Manager.Dependencies.FileSystem;
 using GW2_Addon_Manager.Dependencies.WebClient;
 using Application = System.Windows.Application;
@@ -40,7 +41,7 @@ namespace GW2_Addon_Manager
             _pluginManagement = new PluginManagement(_configurationManager);
             _pluginManagement.DisplayAddonStatus();
 
-            var configuration = new Configuration(_configurationManager, new UpdateHelper(new WebClientWrapper()), new FileSystemManager());        
+            var configuration = new Configuration(_configurationManager, new UpdateHelper(WebClientFactory.Create()), new FileSystemManager());        
 
             InitializeComponent();
             SetUpdateButtonVisibility(configuration);
